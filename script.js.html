@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: script.js</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Source: script.js</h1>
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>/**
+ * Array which contains all the objects Products
+ */
+var arrayProducts = new Array();
+
+/**
+ * Array which contains all the objects checked Products
+ */
+var arrayProductsChecked;
+
+/**
+ * Color selected to apply the new Products
+ */
+var colorSelected = "#fff";
+
+/**
+ * Represent the state of edition, if true, the state is editing
+ */
+var edit = false;
+
+/**
+ * Action to load the HTML
+ */
+window.onload = innerHtml();
+
+/**
+ * Function which draw the HTML
+ */
+function innerHtml() {
+	// Start Header
+	var wrapper = createTag("container", "div", "wrapper");
+	var header = createTag(wrapper, "div", "header", "container");
+	var nav = createTag(header, "nav", "banner");
+	var banner = createTag(nav, "div", null, "nav-wrapper");
+	var a = createTag(banner, "a", null, "brand-logo center-align");
+	createTag(a, "span").innerText = "Lista de la compra";
+	var i = createTag(a, "i", "logo", "large material-icons");
+	i.innerText = "shopping_cart";
+	// End Header
+
+	// Start Category
+	var category = createTag(header, "div", "category", "row");
+	var col = createTag(category, "div", null, "col s12 center-align");
+	createTag(col, "span").innerText = "Categoría: ";
+	addAttribute(createTag(col, "button", null, "color"), ["value", "#fff"]);
+	addAttribute(createTag(col, "button", null, "color"), ["value", "#22D8D5"]);
+	addAttribute(createTag(col, "button", null, "color"), ["value", "#D85622"]);
+	addAttribute(createTag(col, "button", null, "color"), ["value", "#90D822"]);
+	addAttribute(createTag(col, "button", null, "color"), ["value", "#D8C722"]);
+	i = createTag(col, "i", "sortColor", "small material-icons tooltipped");
+	addAttribute(i, ["data-position", "bottom"], ["data-delay", "50"], ["data-tooltip", "Ordenar por colores"]);
+	i.innerText = "compare_arrows";
+	i.addEventListener("click", sortByColor, false);
+	i = createTag(col, "i", "sortAlpha", "small material-icons tooltipped");
+	addAttribute(i, ["data-position", "bottom"], ["data-delay", "50"], ["data-tooltip", "Ordenar alfabéticamente"]);
+	i.innerText = "sort_by_alpha";
+	i.addEventListener("click", sortByAlpha, false);
+
+	var arrayClass = document.getElementsByClassName("color");
+	for (let i = 0; i &lt; arrayClass.length; i++) {
+		var element = arrayClass[i];
+		element.addEventListener("click", function () {
+			selectColor(this);
+		}, false);
+	}
+	// End Category
+
+	// Start Controls
+	var row = createTag(header, "div", null, "row");
+	var control = createTag(row, "div", "control", "col s2 center-align");
+	i = createTag(control, "i", "edit", "small material-icons tooltipped");
+	addAttribute(i, ["data-position", "bottom"], ["data-delay", "50"], ["data-tooltip", "Editar producto"]);
+	i.innerText = "edit";
+	i.addEventListener("click", editProduct, false);
+	i = createTag(control, "i", "selectAll", "small material-icons tooltipped");
+	addAttribute(i, ["data-position", "bottom"], ["data-delay", "50"], ["data-tooltip", "Seleccionar todos"]);
+	i.innerText = "check_box";
+	i.addEventListener("click", function () {
+		selectCheckBox(true);
+	}, false);
+	i = createTag(control, "i", "selectNone", "small material-icons tooltipped");
+	addAttribute(i, ["data-position", "bottom"], ["data-delay", "50"], ["data-tooltip", "Deseleccionar todos"]);
+	i.innerText = "check_box_outline_blank";
+	i.addEventListener("click", function () {
+		selectCheckBox(false);
+	}, false);
+	i = createTag(control, "i", "del", "small material-icons tooltipped");
+	addAttribute(i, ["data-position", "bottom"], ["data-delay", "50"], ["data-tooltip", "Eliminar seleccionados"]);
+	i.innerText = "delete";
+	i.addEventListener("click", removeProduct, false);
+	//End Controls
+
+	//Start Form
+	var form = createTag(row, "div", "form");
+	col = createTag(form, "div", null, "col s3 center-align");
+	var span = createTag(col, "span", null, "input-number-decrement");
+	span.addEventListener("click", decrement, false);
+	span.innerText = "-";
+	addAttribute(createTag(col, "input", "amount"), ["type", "number"], ["placeholder", "Cant."]);
+	span = createTag(col, "span", null, "input-number-increment");
+	span.innerText = "+";
+	span.addEventListener("click", increment, false);
+	var input = createTag(form, "input", "productName", "col s6");
+	addAttribute(input, ["type", "text"], ["placeholder", "Producto"]);
+	input.addEventListener("keypress", function (e) {
+		if (e.keyCode == 13)
+			addProduct();
+	});
+	i = createTag(form, "i", "add", "small material-icons tooltipped");
+	addAttribute(i, ["data-position", "bottom"], ["data-delay", "50"], ["data-tooltip", "Añadir"]);
+	i.innerText = "add_box";
+	i.addEventListener("click", addProduct, false);
+	//End Form
+
+	//Create board
+	createTag(wrapper, "div", "board", "container");
+
+	downloadLocalStorage();
+	loadBoard();
+}
+
+/**
+ * Load the DIV board with all the Products which inside ArrayProducts
+ */
+function loadBoard() {
+	var arrayProductsCopy = new Array();
+	var board = document.getElementById("board");
+
+	//Remove all the childNodes from board
+	removeTags(board, false);
+
+	Array.prototype.forEach.call(arrayProducts, function (product) {
+		var productObject = new Product(product.amount, product.product, product.color);
+		arrayProductsCopy.push(productObject);
+	}, this);
+
+	//Put the arrayProducts to 0
+	arrayProducts = new Array();
+	//Copy with slice from one array to another array
+	arrayProducts = arrayProductsCopy.slice();
+}
+
+/**
+ * Add product to the array with the input's values
+ */
+function addProduct() {
+	var amount = document.getElementById("amount").value;
+	var productName = document.getElementById("productName").value;
+
+	document.getElementById("amount").value = "";
+	document.getElementById("productName").value = "";
+
+	if (edit) {
+		edit = false;
+		changeStatusCheckbox(false);
+		arrayProductsChecked[0].editProduct(amount, productName);
+		loadBoard();
+		Materialize.toast("El producto se ha editado correctamente", 4000, "rounded");
+	} else if (amount != "" &amp;&amp; amount > 0 &amp;&amp; productName != "") {
+		var color = colorSelected;
+		var product = new Product(amount, productName, color);
+		arrayProducts.push(product);
+		Materialize.toast("El producto se ha insertado correctamente", 4000, "rounded");
+	} else
+		Materialize.toast("Rellene todos los campos!", 4000, "rounded");
+
+	document.getElementById("amount").focus();
+
+	uploadLocalStorage();
+}
+
+/**
+ * Load the var with the clicked color, and if there is a Product checked, put the color selected on the Product
+ * @param {HTMLElement} object Element clicked which contains a color
+ */
+function selectColor(object) {
+	colorSelected = object.value;
+	var arrayColors = document.getElementsByClassName("color");
+
+	Array.prototype.forEach.call(arrayColors, function (element) {
+		element.className = "color";
+	}, this);
+
+	object.className = "color focus";
+
+	if (arrayProductsChecked != undefined &amp;&amp; arrayProductsChecked.length != 0)
+		Array.prototype.forEach.call(arrayProductsChecked, function (element) {
+			element.updateColor(colorSelected);
+		}, this);
+
+	uploadLocalStorage();
+}
+
+/**
+ * Read the checkbox and add to ArrayProductsChecked if true, remove if false;
+ */
+function fillArrayProductsChecked() {
+	arrayProductsChecked = new Array();
+
+	Array.prototype.forEach.call(arrayProducts, function (product) {
+		if (product.element.children[0].checked)
+			arrayProductsChecked.push(product);
+
+		if (!product.element.children[0].checked) {
+			var index;
+			if ((index = arrayProductsChecked.indexOf(product)) > -1)
+				arrayProductsChecked.splice(index, 1);
+		}
+	}, this);
+}
+
+/**
+ * Function which start the edit process, completed by addProduct function
+ */
+function editProduct() {
+	if (arrayProductsChecked == undefined || arrayProductsChecked.length != 1)
+		Materialize.toast("Solo puede editar un campo a la vez", 4000, "rounded");
+	else {
+		changeStatusCheckbox(true);
+		edit = true;
+		document.getElementById("amount").value = arrayProductsChecked[0].amount;
+		document.getElementById("productName").value = arrayProductsChecked[0].product;
+	}
+}
+
+/**
+ * Enable or disable all the checkbox from the board
+ * @param {boolean} disabled 
+ */
+function changeStatusCheckbox(disabled) {
+	Array.prototype.forEach.call(arrayProducts, function (element) {
+		element.element.children[0].disabled = disabled;
+	}, this);
+}
+
+/**
+ * If check is true, put all the checkboxs checked, if false put it unchecked
+ * @param {boolean} check 
+ */
+function selectCheckBox(check) {
+	Array.prototype.forEach.call(arrayProducts, function (element) {
+		element.element.children[0].checked = check;
+	}, this);
+	fillArrayProductsChecked();
+}
+
+/**
+ * Remove a product selected from board, and ArrayProducts, also update the arrayProductsChecked
+ */
+function removeProduct() {
+	if (arrayProductsChecked != undefined &amp;&amp; arrayProductsChecked.length != 0)
+		Array.prototype.forEach.call(arrayProductsChecked, function (product) {
+			var index = arrayProducts.indexOf(product);
+			arrayProducts.splice(index, 1);
+			removeTags(product.element, true);
+			Materialize.toast("El producto se ha borrado correctamente!", 4000, "rounded");
+		}, this);
+	else
+		Materialize.toast("No ha seleccionado ningún producto para borrar!", 4000, "rounded");
+
+	fillArrayProductsChecked();
+	uploadLocalStorage();
+}
+
+/**
+ * Sort all the products by color in the array, and then draw it in the board
+ */
+function sortByColor() {
+	arrayProducts.sort(function (a, b) {
+		var x = a.color.toLowerCase();
+		var y = b.color.toLowerCase();
+		if (x &lt; y)
+			return -1;
+		if (x > y)
+			return 1;
+		return 0;
+	});
+
+	loadBoard();
+	uploadLocalStorage();
+}
+
+/**
+ * Sort all the products by alpha in the array, and then draw it in the board
+ */
+function sortByAlpha() {
+	arrayProducts.sort(function (a, b) {
+		var x = a.product.toLowerCase();
+		var y = b.product.toLowerCase();
+		if (x &lt; y)
+			return -1;
+		if (x > y)
+			return 1;
+		return 0;
+	});
+
+	loadBoard();
+	uploadLocalStorage();
+}
+
+/**
+ * Upload Local Storage
+ */
+function uploadLocalStorage() {
+	localStorage.setItem("arrayProducts", JSON.stringify(arrayProducts));
+}
+
+/**
+ * Download Local Storage
+ */
+function downloadLocalStorage() {
+	if (localStorage["arrayProducts"] != undefined)
+		arrayProducts = JSON.parse(localStorage.getItem("arrayProducts"));
+}
+
+/**
+ * Decrement the input number with the amount
+ */
+function decrement() {
+	var value = document.getElementById("amount").value;
+	if (value > 1)
+		document.getElementById("amount").value--;
+}
+
+/**
+ * Increment the input number with the amount
+ */
+function increment() {
+	document.getElementById("amount").value++;
+}</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Classes</h3><ul><li><a href="Product.html">Product</a></li></ul><h3>Global</h3><ul><li><a href="global.html#addAttribute">addAttribute</a></li><li><a href="global.html#addProduct">addProduct</a></li><li><a href="global.html#arrayProducts">arrayProducts</a></li><li><a href="global.html#arrayProductsChecked">arrayProductsChecked</a></li><li><a href="global.html#changeStatusCheckbox">changeStatusCheckbox</a></li><li><a href="global.html#clear">clear</a></li><li><a href="global.html#colorSelected">colorSelected</a></li><li><a href="global.html#copyPasteTag">copyPasteTag</a></li><li><a href="global.html#createInputTag">createInputTag</a></li><li><a href="global.html#createTag">createTag</a></li><li><a href="global.html#decrement">decrement</a></li><li><a href="global.html#downloadLocalStorage">downloadLocalStorage</a></li><li><a href="global.html#edit">edit</a></li><li><a href="global.html#editProduct">editProduct</a></li><li><a href="global.html#fillArrayProductsChecked">fillArrayProductsChecked</a></li><li><a href="global.html#increment">increment</a></li><li><a href="global.html#innerHtml">innerHtml</a></li><li><a href="global.html#loadBoard">loadBoard</a></li><li><a href="global.html#removeProduct">removeProduct</a></li><li><a href="global.html#removeTag">removeTag</a></li><li><a href="global.html#removeTags">removeTags</a></li><li><a href="global.html#selectCheckBox">selectCheckBox</a></li><li><a href="global.html#selectColor">selectColor</a></li><li><a href="global.html#sortByAlpha">sortByAlpha</a></li><li><a href="global.html#sortByColor">sortByColor</a></li><li><a href="global.html#uploadLocalStorage">uploadLocalStorage</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.5.5</a> on Thu Nov 23 2017 20:04:53 GMT+0000 (Hora estándar GMT)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>
